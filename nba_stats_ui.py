@@ -12,7 +12,7 @@ def fetch_gamelog(player_id):
         st.error(f"Error fetching data: {e}")
         return None
 
-def get_player_stat_avg(player_name, stat_category, matchup): # need to add stat_amount as parameter
+def get_player_stat_avg(player_name, stat_category, matchup, stat_amount): # need to add stat_amount as parameter
     player_dict = players.get_players()
 
     # Find the player by name
@@ -35,16 +35,33 @@ def get_player_stat_avg(player_name, stat_category, matchup): # need to add stat
     matchup = matchup.lower()
     gamelog_df_opp = gamelog_df[gamelog_df['matchup'].str.contains(f" {matchup}", case=False, na=False)]
     if gamelog_df_opp.empty:
-        return f"No games found for {player_name} against opponent '{matchup}'."
+        st.warning(f"No games found for {player_name} against opponent '{matchup.upper()}'.")
 
-    # Calculate the averages
+    # [Algorithm's prediction] Calculate the statistic averages
     stat_avg_last10all = gamelog_df[stat_category].head(10).mean()
     stat_avg_last3opp = gamelog_df_opp[stat_category].head(3).mean()
+    stat_avg_adjusted = stat_avg_last10all*0.75 + stat_avg_last3opp*0.25
+    if gamelog_df_opp.empty:
+        stat_avg_adjusted = stat_avg_last10all
 
-    return f"Average {stat_category} for {player_name} throughout the past 10 games: {stat_avg_last10all:.1f}\nAverage {stat_category} for {player_name} over the past 3 games played against {matchup.upper()}: {stat_avg_last3opp:.1f}"
+    comparison = (
+        f"Average {stat_category.upper()} for {player_name} over the past 10 games: {stat_avg_last10all:.1f}\n\n"
+        f"Average {stat_category.upper()} for {player_name} over the past 3 games played against {matchup.upper()}: {stat_avg_last3opp:.1f}\n\n"
+    )
+    
+    # Compare to stat_amount
+    if stat_avg_adjusted > stat_amount:
+        comparison += f"The algorithm's prediction of {stat_avg_adjusted:.3f} {stat_category.upper()} is **higher** than the specified {stat_amount:.1f} {stat_category.upper()}. Bet the **over**."
+    elif stat_avg_adjusted < stat_amount:
+        comparison += f"The algorithm's prediction of {stat_avg_adjusted:.3f} {stat_category.upper()} is **lower** than the specified {stat_amount:.1f} {stat_category.upper()}. Bet the **under**."
+    else:
+        comparison += f"The algorithm's prediction of {stat_avg_adjusted:.3f} {stat_category.upper()} is **equal** to the specified {stat_amount:.1f} {stat_category.upper()}. Use your best judgment."
+    
+    return comparison
 
 # Streamlit App
-st.title("NBA Player Stats Lookup")
+st.title("Over/Under")
+st.subheader("nba-stats")
 
 # Input fields
 player_name = st.text_input("Enter player's name:", value="")
@@ -57,10 +74,6 @@ stat_category = st.selectbox(
 if stat_category == "Select...":
     stat_category = None
 
-# stat_amount = st.number_input("Enter statistic amount:", min_value=0, value=10.5)
-# if stat_amount == 0:
-#     stat_amount = None
-
 matchup = st.selectbox(
     "Select opponent:",
     ["Select...", "ATL", "BOS", "BKN", "CHA", "CHI", "CLE", "DAL", "DEN", "DET", "GSW", "HOU", "IND",
@@ -70,9 +83,19 @@ matchup = st.selectbox(
 if matchup == "Select...":
     matchup = None
 
+stat_amount = st.number_input("Enter statistic amount to compare:", value=10.5, step=1.0, format="%.1f")
+if stat_amount == 0:
+    stat_amount = None
+
 if st.button("Get Stats"):
     if player_name and stat_category and matchup:
-        result = get_player_stat_avg(player_name, stat_category, matchup) # need to add stat_amount as parameter
-        st.write(result)
+        with st.spinner("Fetching data..."):
+            result = get_player_stat_avg(player_name, stat_category, matchup, stat_amount)
+        
+        if "not found" in result or "No games" in result:
+            st.error(result)
+        else:
+            st.markdown("### Results:")
+            st.success(result)
     else:
-        st.write("Please fill in all fields.")
+        st.warning("Please fill in all fields.")
