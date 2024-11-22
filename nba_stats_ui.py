@@ -12,7 +12,7 @@ def fetch_gamelog(player_id):
         st.error(f"Error fetching data: {e}")
         return None
 
-def get_player_stat_avg(player_name, stat_category, num_games, matchup):
+def get_player_stat_avg(player_name, stat_category, matchup): # need to add stat_amount as parameter
     player_dict = players.get_players()
 
     # Find the player by name
@@ -33,22 +33,22 @@ def get_player_stat_avg(player_name, stat_category, num_games, matchup):
 
     # Filter for the specified opponent
     matchup = matchup.lower()
-    gamelog_df = gamelog_df[gamelog_df['matchup'].str.contains(f" {matchup}", case=False, na=False)]
-    if gamelog_df.empty:
+    gamelog_df_opp = gamelog_df[gamelog_df['matchup'].str.contains(f" {matchup}", case=False, na=False)]
+    if gamelog_df_opp.empty:
         return f"No games found for {player_name} against opponent '{matchup}'."
 
-    # Filter the most recent num_games and calculate the average
-    num_games = min(num_games, len(gamelog_df))
-    recent_games = gamelog_df.head(num_games)
-    stat_avg = round(recent_games[stat_category].mean(), 2)
+    # Calculate the averages
+    stat_avg_last10all = gamelog_df[stat_category].head(10).mean()
+    stat_avg_last3opp = gamelog_df_opp[stat_category].head(3).mean()
 
-    return f"Average {stat_category} for {player_name} over the past {num_games} games played against {matchup.upper()}: {stat_avg:.2f}"
+    return f"Average {stat_category} for {player_name} throughout the past 10 games: {stat_avg_last10all:.1f}\nAverage {stat_category} for {player_name} over the past 3 games played against {matchup.upper()}: {stat_avg_last3opp:.1f}"
 
 # Streamlit App
 st.title("NBA Player Stats Lookup")
 
 # Input fields
 player_name = st.text_input("Enter player's name:", value="")
+
 stat_category = st.selectbox(
     "Select statistic category:",
     ["Select...", "PTS", "REB", "AST", "STL", "BLK", "FGM", "FGA", "FG_PCT", "FG3M", "FG3A", "FG3_PCT", "FTM", "FTA", "FT_PCT",
@@ -57,9 +57,9 @@ stat_category = st.selectbox(
 if stat_category == "Select...":
     stat_category = None
 
-num_games = st.number_input("Enter the number of recent games:", min_value=0, value=3)
-if num_games == 0:
-    num_games = None
+# stat_amount = st.number_input("Enter statistic amount:", min_value=0, value=10.5)
+# if stat_amount == 0:
+#     stat_amount = None
 
 matchup = st.selectbox(
     "Select opponent:",
@@ -72,7 +72,7 @@ if matchup == "Select...":
 
 if st.button("Get Stats"):
     if player_name and stat_category and matchup:
-        result = get_player_stat_avg(player_name, stat_category, num_games, matchup)
+        result = get_player_stat_avg(player_name, stat_category, matchup) # need to add stat_amount as parameter
         st.write(result)
     else:
         st.write("Please fill in all fields.")
