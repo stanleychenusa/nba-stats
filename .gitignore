@@ -1,0 +1,8 @@
+# Python-related
+*.pyc
+__pycache__/
+env/
+venv/
+
+# Streamlit
+.streamlit/
