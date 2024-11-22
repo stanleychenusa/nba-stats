@@ -12,7 +12,7 @@ def fetch_gamelog(player_id):
         st.error(f"Error fetching data: {e}")
         return None
 
-def get_player_stat_avg(player_name, stat_category, matchup, stat_amount): # need to add stat_amount as parameter
+def over_under(player_name, stat_category, matchup, stat_amount):
     player_dict = players.get_players()
 
     # Find the player by name
@@ -90,7 +90,7 @@ if stat_amount == 0:
 if st.button("Get Stats"):
     if player_name and stat_category and matchup:
         with st.spinner("Fetching data..."):
-            result = get_player_stat_avg(player_name, stat_category, matchup, stat_amount)
+            result = over_under(player_name, stat_category, matchup, stat_amount)
         
         if "not found" in result or "No games" in result:
             st.error(result)
