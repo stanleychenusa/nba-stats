@@ -3,6 +3,15 @@ from nba_api.stats.static import players
 from nba_api.stats.endpoints import playergamelog
 from nba_api.stats.library.parameters import SeasonAll
 
+@st.cache_data
+def fetch_gamelog(player_id):
+    try:
+        gamelog = playergamelog.PlayerGameLog(player_id=player_id, season=SeasonAll.all)
+        return gamelog.get_data_frames()[0]
+    except Exception as e:
+        st.error(f"Error fetching data: {e}")
+        return None
+
 def get_player_stat_avg(player_name, stat_category, num_games, matchup):
     player_dict = players.get_players()
 
@@ -29,6 +38,7 @@ def get_player_stat_avg(player_name, stat_category, num_games, matchup):
         return f"No games found for {player_name} against opponent '{matchup}'."
 
     # Filter the most recent num_games and calculate the average
+    num_games = min(num_games, len(gamelog_df))
     recent_games = gamelog_df.head(num_games)
     stat_avg = round(recent_games[stat_category].mean(), 2)
 
