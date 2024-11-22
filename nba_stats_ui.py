@@ -57,7 +57,7 @@ stat_category = st.selectbox(
 if stat_category == "Select...":
     stat_category = None
 
-num_games = st.number_input("Enter the number of recent games:", min_value=0, max_value=82, value=3)
+num_games = st.number_input("Enter the number of recent games:", min_value=0, value=3)
 if num_games == 0:
     num_games = None
 
